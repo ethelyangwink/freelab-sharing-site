@@ -347,11 +347,7 @@ figure {
 }
 
 figcaption {
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.35;
+  display: none;
 }
 
 .wide-shot {
@@ -387,6 +383,7 @@ figcaption {
 }
 
 .phone-gallery figure {
+  position: relative;
   padding: 9px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -408,6 +405,44 @@ figcaption {
   object-fit: cover;
   border-radius: 6px;
   background: #eee;
+}
+
+.phone-gallery a {
+  position: relative;
+  display: block;
+  color: inherit;
+}
+
+.video-card {
+  cursor: pointer;
+}
+
+.video-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(23, 20, 18, 0.86);
+  color: #fffdf8;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+}
+
+.video-badge::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid currentColor;
 }
 
 .two-col {
@@ -495,13 +530,42 @@ figcaption {
   color: #d9d0c5;
 }
 
-.pattern-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.pattern-stack {
+  display: grid;
+  gap: 16px;
   margin-top: 16px;
 }
 
-.pattern-grid article {
+.pattern-block {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
   padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.pattern-copy strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1.25;
+}
+
+.pattern-copy span {
+  display: block;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.phone-gallery.inline {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 146px));
+  margin-top: 0;
 }
 
 .quote-block {
@@ -649,7 +713,7 @@ figcaption {
   .two-col,
   .process,
   .core-list,
-  .pattern-grid,
+  .pattern-block,
   .criteria,
   .launch-plan,
   .qa-list {

@@ -33,13 +33,14 @@ const closeButton = lightbox.querySelector(".lightbox-close");
 
 document.querySelectorAll(".phone-gallery figure, .wide-shot").forEach((figure) => {
   figure.addEventListener("click", () => {
+    if (figure.querySelector("a")) return;
+
     const image = figure.querySelector("img");
-    const caption = figure.querySelector("figcaption");
     if (!image) return;
 
     lightboxImage.src = image.src;
     lightboxImage.alt = image.alt;
-    lightboxCaption.textContent = caption ? caption.textContent : image.alt;
+    lightboxCaption.textContent = image.alt;
     lightbox.classList.add("open");
     lightbox.setAttribute("aria-hidden", "false");
   });
