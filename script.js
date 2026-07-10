@@ -65,8 +65,11 @@ let isEditingText = false;
 let hasRemoteBackupServer = false;
 let fileBackupHandlePromise = null;
 let hasUnsavedTextChanges = false;
-const PEN_FADE_MS = 620;
-const PEN_LINE_WIDTH = 5;
+const PEN_FADE_MS = 1180;
+const PEN_SOLID_MS = 160;
+const PEN_LINE_WIDTH = 3.2;
+const PEN_MIN_POINT_DISTANCE = 2.4;
+const PEN_COLOR = "#e52b1c";
 let isPresentationPenActive = false;
 let penCanvas = null;
 let penContext = null;
@@ -74,6 +77,7 @@ let penAnimationFrame = null;
 let isDrawingWithPen = false;
 let penLastPoint = null;
 let penStrokes = [];
+let penCurrentStroke = null;
 
 function getStoredEdits() {
   try {
@@ -499,18 +503,21 @@ function startPresentationLine(event) {
   penCanvas.setPointerCapture(event.pointerId);
   isDrawingWithPen = true;
   penLastPoint = getPresentationPoint(event);
+  penCurrentStroke = {
+    points: [penLastPoint],
+  };
+  penStrokes.push(penCurrentStroke);
+  requestPresentationPenFrame();
 }
 
 function continuePresentationLine(event) {
-  if (!isDrawingWithPen || !penLastPoint) return;
+  if (!isDrawingWithPen || !penLastPoint || !penCurrentStroke) return;
 
   event.preventDefault();
   const nextPoint = getPresentationPoint(event);
-  penStrokes.push({
-    from: penLastPoint,
-    to: nextPoint,
-    createdAt: nextPoint.time,
-  });
+  if (getPointDistance(penLastPoint, nextPoint) < PEN_MIN_POINT_DISTANCE) return;
+
+  penCurrentStroke.points.push(nextPoint);
   penLastPoint = nextPoint;
   requestPresentationPenFrame();
 }
@@ -518,12 +525,143 @@ function continuePresentationLine(event) {
 function stopPresentationLine(event) {
   if (!isDrawingWithPen) return;
 
+  const completedStroke = penCurrentStroke;
   isDrawingWithPen = false;
   penLastPoint = null;
+  penCurrentStroke = null;
+  schedulePenStrokeCleanup(completedStroke);
 
   if (penCanvas.hasPointerCapture(event.pointerId)) {
     penCanvas.releasePointerCapture(event.pointerId);
   }
+}
+
+function clearPresentationPenCanvas() {
+  if (!penContext) return;
+  penContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
+}
+
+function schedulePenStrokeCleanup(stroke) {
+  if (!stroke) return;
+
+  window.setTimeout(() => {
+    if (penCurrentStroke === stroke) return;
+
+    stroke.points = [];
+    penStrokes = penStrokes.filter((item) => item.points.length);
+
+    if (!penStrokes.length) {
+      clearPresentationPenCanvas();
+    }
+  }, PEN_FADE_MS + 120);
+}
+
+function getPointDistance(pointA, pointB) {
+  return Math.hypot(pointA.x - pointB.x, pointA.y - pointB.y);
+}
+
+function getPointFade(point, now) {
+  const age = now - point.time;
+  if (age <= PEN_SOLID_MS) return 1;
+  return Math.max(0, 1 - (age - PEN_SOLID_MS) / (PEN_FADE_MS - PEN_SOLID_MS));
+}
+
+function getPointOpacity(point, now) {
+  return Math.pow(getPointFade(point, now), 0.82);
+}
+
+function getPointLineWidth(point, now) {
+  return PEN_LINE_WIDTH * Math.pow(getPointFade(point, now), 1.35);
+}
+
+function addPenSegmentToPath(path, points, index) {
+  const point0 = points[index - 1] || points[index];
+  const point1 = points[index];
+  const point2 = points[index + 1];
+  const point3 = points[index + 2] || point2;
+  const control1 = {
+    x: point1.x + (point2.x - point0.x) / 6,
+    y: point1.y + (point2.y - point0.y) / 6,
+  };
+  const control2 = {
+    x: point2.x - (point3.x - point1.x) / 6,
+    y: point2.y - (point3.y - point1.y) / 6,
+  };
+
+  path.bezierCurveTo(
+    control1.x,
+    control1.y,
+    control2.x,
+    control2.y,
+    point2.x,
+    point2.y,
+  );
+}
+
+function drawPenSegment(points, index, now) {
+  const targetPoint = points[index + 1];
+  const opacity = getPointOpacity(targetPoint, now);
+  const lineWidth = getPointLineWidth(targetPoint, now);
+  if (opacity <= 0.02 || lineWidth <= 0.08) return;
+
+  const path = new Path2D();
+  path.moveTo(points[index].x, points[index].y);
+  addPenSegmentToPath(path, points, index);
+
+  penContext.save();
+  penContext.globalAlpha = opacity;
+  penContext.lineWidth = lineWidth;
+  penContext.lineCap = "butt";
+  penContext.lineJoin = "round";
+  penContext.strokeStyle = PEN_COLOR;
+  penContext.stroke(path);
+  penContext.restore();
+}
+
+function drawPenEndCaps(points, now) {
+  const firstPoint = points[0];
+  const lastPoint = points[points.length - 1];
+
+  penContext.save();
+  penContext.fillStyle = PEN_COLOR;
+  [firstPoint, lastPoint].forEach((point) => {
+    const radius = getPointLineWidth(point, now) / 2;
+    if (radius <= 0.08) return;
+
+    penContext.globalAlpha = getPointOpacity(point, now);
+    penContext.beginPath();
+    penContext.arc(point.x, point.y, radius, 0, Math.PI * 2);
+    penContext.fill();
+  });
+  penContext.restore();
+}
+
+function drawPenDot(point, now) {
+  const radius = getPointLineWidth(point, now) / 2;
+  if (radius <= 0.08) return;
+
+  penContext.save();
+  penContext.globalAlpha = getPointOpacity(point, now);
+  penContext.fillStyle = PEN_COLOR;
+  penContext.beginPath();
+  penContext.arc(point.x, point.y, radius, 0, Math.PI * 2);
+  penContext.fill();
+  penContext.restore();
+}
+
+function drawPenStroke(stroke, now) {
+  const points = stroke.points.filter((point) => now - point.time < PEN_FADE_MS);
+  stroke.points = points;
+
+  if (points.length === 1) {
+    drawPenDot(points[0], now);
+    return;
+  }
+
+  for (let index = 0; index < points.length - 1; index += 1) {
+    drawPenSegment(points, index, now);
+  }
+  drawPenEndCaps(points, now);
 }
 
 function renderPresentationPen() {
@@ -531,27 +669,11 @@ function renderPresentationPen() {
 
   penAnimationFrame = null;
   const now = performance.now();
-  penContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
-  penStrokes = penStrokes.filter((stroke) => now - stroke.createdAt < PEN_FADE_MS);
-
-  penStrokes.forEach((stroke) => {
-    const age = now - stroke.createdAt;
-    const opacity = Math.max(0, 1 - age / PEN_FADE_MS);
-
-    penContext.save();
-    penContext.globalAlpha = opacity;
-    penContext.lineWidth = PEN_LINE_WIDTH;
-    penContext.lineCap = "round";
-    penContext.lineJoin = "round";
-    penContext.shadowColor = "rgba(233, 71, 43, 0.42)";
-    penContext.shadowBlur = 10;
-    penContext.strokeStyle = "#e9472b";
-    penContext.beginPath();
-    penContext.moveTo(stroke.from.x, stroke.from.y);
-    penContext.lineTo(stroke.to.x, stroke.to.y);
-    penContext.stroke();
-    penContext.restore();
-  });
+  clearPresentationPenCanvas();
+  penStrokes = penStrokes.filter((stroke) =>
+    stroke.points.some((point) => now - point.time < PEN_FADE_MS),
+  );
+  penStrokes.forEach((stroke) => drawPenStroke(stroke, now));
 
   if (penStrokes.length) {
     requestPresentationPenFrame();
@@ -574,6 +696,7 @@ function disablePresentationPen() {
   isPresentationPenActive = false;
   isDrawingWithPen = false;
   penLastPoint = null;
+  penCurrentStroke = null;
   document.body.classList.remove("presentation-pen-active");
 }
 
