@@ -618,6 +618,164 @@ figcaption {
   background: rgba(18, 14, 10, 0.82);
 }
 
+.edit-toolbar {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 36px);
+  padding: 10px;
+  border: 1px solid rgba(23, 20, 18, 0.16);
+  border-radius: var(--radius);
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 18px 46px rgba(39, 31, 20, 0.18);
+  backdrop-filter: blur(14px);
+}
+
+.edit-toolbar[hidden] {
+  display: none;
+}
+
+.edit-toolbar span {
+  padding: 0 8px;
+  color: var(--accent-dark);
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.edit-toolbar .edit-save-status {
+  min-width: 46px;
+  padding: 0;
+  color: var(--accent-dark);
+  font-size: 12px;
+}
+
+.edit-toolbar button,
+.edit-lock button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.edit-toolbar button[data-edit-action="reset"],
+.edit-toolbar button[data-edit-action="exit"],
+.edit-lock button[data-edit-action="cancel"] {
+  background: transparent;
+  color: var(--ink);
+}
+
+.edit-lock {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(18, 14, 10, 0.64);
+}
+
+.edit-lock.open {
+  display: flex;
+}
+
+.edit-lock-panel {
+  width: min(100%, 420px);
+  padding: 24px;
+  border: 1px solid rgba(23, 20, 18, 0.12);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.edit-lock-kicker {
+  margin-bottom: 8px;
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.edit-lock h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.edit-lock h2 + p {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.edit-lock label {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.edit-lock input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: white;
+  color: var(--ink);
+  font: inherit;
+}
+
+.edit-lock input:focus,
+[contenteditable="true"]:focus {
+  outline: 3px solid rgba(233, 71, 43, 0.28);
+  outline-offset: 2px;
+}
+
+.edit-lock-error {
+  margin-top: 10px;
+  color: var(--accent-dark);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.edit-lock-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+body.text-editing [data-editable-text="true"] {
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(233, 71, 43, 0.28);
+  cursor: text;
+}
+
+body.text-editing [data-editable-text="true"]:hover {
+  background: rgba(233, 71, 43, 0.08);
+}
+
+body.text-editing a[data-editable-text="true"] {
+  pointer-events: auto;
+}
+
 .lightbox.open {
   display: flex;
 }
@@ -727,6 +885,21 @@ figcaption {
 }
 
 @media (max-width: 480px) {
+  .edit-toolbar {
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    flex-wrap: wrap;
+  }
+
+  .edit-toolbar span {
+    width: 100%;
+  }
+
+  .edit-toolbar button {
+    flex: 1;
+  }
+
   .hero-actions,
   .button {
     width: 100%;
