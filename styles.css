@@ -747,9 +747,10 @@ figcaption {
   bottom: 18px;
   z-index: 70;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  max-width: calc(100vw - 36px);
+  max-width: min(760px, calc(100vw - 36px));
   padding: 10px;
   border: 1px solid rgba(23, 20, 18, 0.16);
   border-radius: var(--radius);
@@ -897,6 +898,28 @@ body.text-editing [data-editable-text="true"]:hover {
 
 body.text-editing a[data-editable-text="true"] {
   pointer-events: auto;
+}
+
+.presentation-pen-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  width: 100vw;
+  height: 100vh;
+  opacity: 0;
+  pointer-events: none;
+  touch-action: none;
+  transition: opacity 120ms ease;
+}
+
+body.presentation-pen-active {
+  cursor: crosshair;
+}
+
+body.presentation-pen-active .presentation-pen-canvas {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: crosshair;
 }
 
 .lightbox.open {
@@ -1053,6 +1076,10 @@ body.text-editing a[data-editable-text="true"] {
 
   .edit-toolbar span {
     width: 100%;
+  }
+
+  .edit-toolbar .edit-save-status {
+    min-height: 18px;
   }
 
   .edit-toolbar button {
