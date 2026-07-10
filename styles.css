@@ -647,6 +647,13 @@ figcaption {
   white-space: nowrap;
 }
 
+.edit-toolbar .edit-save-status {
+  min-width: 46px;
+  padding: 0;
+  color: var(--accent-dark);
+  font-size: 12px;
+}
+
 .edit-toolbar button,
 .edit-lock button {
   min-height: 38px;

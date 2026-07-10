@@ -52,6 +52,7 @@ const editLock = document.querySelector(".edit-lock");
 const editLockForm = document.querySelector(".edit-lock-panel");
 const editLockInput = editLock.querySelector("input");
 const editLockError = editLock.querySelector(".edit-lock-error");
+const editSaveStatus = editToolbar.querySelector(".edit-save-status");
 const editableElements = Array.from(document.querySelectorAll(EDITABLE_SELECTOR))
   .filter((element) => !element.closest(".edit-toolbar, .edit-lock, .lightbox"))
   .filter((element) => !element.querySelector(EDITABLE_SELECTOR));
@@ -89,6 +90,14 @@ function saveElementText(element) {
   const edits = getStoredEdits();
   edits[element.dataset.editPath] = element.textContent;
   setStoredEdits(edits);
+}
+
+function saveAllTextEdits() {
+  editableElements.forEach(saveElementText);
+  editSaveStatus.textContent = "已保存";
+  window.setTimeout(() => {
+    editSaveStatus.textContent = "";
+  }, 1600);
 }
 
 function applyStoredEdits() {
@@ -209,11 +218,12 @@ editLock.addEventListener("click", (event) => {
 editLock.querySelector("[data-edit-action='cancel']").addEventListener("click", closeEditLock);
 
 editToolbar.addEventListener("click", (event) => {
-  const action = event.target.dataset.editAction;
+  const button = event.target.closest("[data-edit-action]");
+  const action = button?.dataset.editAction;
   if (!action) return;
 
   if (action === "save") {
-    editableElements.forEach(saveElementText);
+    saveAllTextEdits();
   }
 
   if (action === "reset") {
@@ -275,7 +285,7 @@ document.addEventListener("keydown", (event) => {
 
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s" && isEditingText) {
     event.preventDefault();
-    editableElements.forEach(saveElementText);
+    saveAllTextEdits();
   }
 
   if (event.key === "Escape" && lightbox.classList.contains("open")) {
