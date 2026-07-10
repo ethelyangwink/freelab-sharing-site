@@ -381,30 +381,6 @@
       </div>
     </main>
 
-    <div class="edit-toolbar" aria-live="polite" hidden>
-      <span>文本编辑模式</span>
-      <button type="button" data-edit-action="save">保存</button>
-      <button type="button" data-edit-action="reset">恢复原文</button>
-      <button type="button" data-edit-action="exit">退出</button>
-    </div>
-
-    <div class="edit-lock" aria-hidden="true">
-      <form class="edit-lock-panel">
-        <p class="edit-lock-kicker">Owner Only</p>
-        <h2>输入编辑口令</h2>
-        <p>按 e 可进入文本编辑模式。为了避免访客误改页面，编辑前需要先解锁。</p>
-        <label>
-          <span>口令</span>
-          <input type="password" autocomplete="current-password" required />
-        </label>
-        <p class="edit-lock-error" role="alert" hidden>口令不对，请再试一次。</p>
-        <div class="edit-lock-actions">
-          <button type="submit">解锁编辑</button>
-          <button type="button" data-edit-action="cancel">取消</button>
-        </div>
-      </form>
-    </div>
-
     <div class="lightbox" aria-hidden="true">
       <button type="button" class="lightbox-close" aria-label="关闭预览">×</button>
       <img alt="" />
