@@ -72,7 +72,7 @@ let penCanvas = null;
 let penContext = null;
 let penAnimationFrame = null;
 let isDrawingWithPen = false;
-let penLastPoint = null;
+let penCurrentStroke = null;
 let penStrokes = [];
 
 function getStoredEdits() {
@@ -498,20 +498,37 @@ function startPresentationLine(event) {
   event.preventDefault();
   penCanvas.setPointerCapture(event.pointerId);
   isDrawingWithPen = true;
-  penLastPoint = getPresentationPoint(event);
+
+  const startPoint = getPresentationPoint(event);
+  penCurrentStroke = {
+    points: [startPoint],
+    updatedAt: startPoint.time,
+  };
+  penStrokes.push(penCurrentStroke);
+  requestPresentationPenFrame();
+}
+
+function appendPresentationPoint(point) {
+  if (!penCurrentStroke) return;
+
+  const points = penCurrentStroke.points;
+  const lastPoint = points[points.length - 1];
+  const distance = Math.hypot(point.x - lastPoint.x, point.y - lastPoint.y);
+
+  if (distance < 0.5) return;
+
+  points.push(point);
+  penCurrentStroke.updatedAt = point.time;
 }
 
 function continuePresentationLine(event) {
-  if (!isDrawingWithPen || !penLastPoint) return;
+  if (!isDrawingWithPen || !penCurrentStroke) return;
 
   event.preventDefault();
-  const nextPoint = getPresentationPoint(event);
-  penStrokes.push({
-    from: penLastPoint,
-    to: nextPoint,
-    createdAt: nextPoint.time,
+  const events = event.getCoalescedEvents ? event.getCoalescedEvents() : [event];
+  events.forEach((pointerEvent) => {
+    appendPresentationPoint(getPresentationPoint(pointerEvent));
   });
-  penLastPoint = nextPoint;
   requestPresentationPenFrame();
 }
 
@@ -519,11 +536,44 @@ function stopPresentationLine(event) {
   if (!isDrawingWithPen) return;
 
   isDrawingWithPen = false;
-  penLastPoint = null;
+  penCurrentStroke = null;
 
   if (penCanvas.hasPointerCapture(event.pointerId)) {
     penCanvas.releasePointerCapture(event.pointerId);
   }
+}
+
+function drawPresentationStroke(stroke) {
+  const { points } = stroke;
+
+  if (points.length === 1) {
+    penContext.beginPath();
+    penContext.arc(points[0].x, points[0].y, PEN_LINE_WIDTH / 2, 0, Math.PI * 2);
+    penContext.fill();
+    return;
+  }
+
+  penContext.beginPath();
+  penContext.moveTo(points[0].x, points[0].y);
+
+  if (points.length === 2) {
+    penContext.lineTo(points[1].x, points[1].y);
+  } else {
+    for (let index = 1; index < points.length - 1; index += 1) {
+      const current = points[index];
+      const next = points[index + 1];
+      const midPoint = {
+        x: (current.x + next.x) / 2,
+        y: (current.y + next.y) / 2,
+      };
+      penContext.quadraticCurveTo(current.x, current.y, midPoint.x, midPoint.y);
+    }
+
+    const lastPoint = points[points.length - 1];
+    penContext.lineTo(lastPoint.x, lastPoint.y);
+  }
+
+  penContext.stroke();
 }
 
 function renderPresentationPen() {
@@ -532,10 +582,10 @@ function renderPresentationPen() {
   penAnimationFrame = null;
   const now = performance.now();
   penContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
-  penStrokes = penStrokes.filter((stroke) => now - stroke.createdAt < PEN_FADE_MS);
+  penStrokes = penStrokes.filter((stroke) => now - stroke.updatedAt < PEN_FADE_MS);
 
   penStrokes.forEach((stroke) => {
-    const age = now - stroke.createdAt;
+    const age = now - stroke.updatedAt;
     const opacity = Math.max(0, 1 - age / PEN_FADE_MS);
 
     penContext.save();
@@ -546,10 +596,8 @@ function renderPresentationPen() {
     penContext.shadowColor = "rgba(233, 71, 43, 0.42)";
     penContext.shadowBlur = 10;
     penContext.strokeStyle = "#e9472b";
-    penContext.beginPath();
-    penContext.moveTo(stroke.from.x, stroke.from.y);
-    penContext.lineTo(stroke.to.x, stroke.to.y);
-    penContext.stroke();
+    penContext.fillStyle = "#e9472b";
+    drawPresentationStroke(stroke);
     penContext.restore();
   });
 
@@ -573,7 +621,7 @@ function enablePresentationPen() {
 function disablePresentationPen() {
   isPresentationPenActive = false;
   isDrawingWithPen = false;
-  penLastPoint = null;
+  penCurrentStroke = null;
   document.body.classList.remove("presentation-pen-active");
 }
 
