@@ -288,6 +288,10 @@ img {
   font-weight: 900;
 }
 
+.minor > p + p {
+  margin-top: 10px;
+}
+
 p {
   margin: 0;
   color: #49423c;
