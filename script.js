@@ -240,7 +240,7 @@ const lightboxImage = lightbox.querySelector("img");
 const lightboxCaption = lightbox.querySelector("p");
 const closeButton = lightbox.querySelector(".lightbox-close");
 
-document.querySelectorAll(".phone-gallery figure, .wide-shot").forEach((figure) => {
+document.querySelectorAll(".phone-gallery figure, .topic-gallery figure, .wide-shot").forEach((figure) => {
   figure.addEventListener("click", () => {
     if (figure.querySelector("a")) return;
 
