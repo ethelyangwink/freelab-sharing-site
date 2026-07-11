@@ -1083,6 +1083,10 @@ body.text-editing [data-editable-text="true"] {
   cursor: text;
 }
 
+[data-editable-text="true"] {
+  white-space: pre-wrap;
+}
+
 body.text-editing [data-editable-text="true"]:hover {
   background: rgba(233, 71, 43, 0.08);
 }

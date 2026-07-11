@@ -174,11 +174,16 @@ function getElementPath(element) {
   return parts.join(">");
 }
 
+function getEditableText(element) {
+  // contenteditable represents Enter with <div> or <br>; textContent drops those breaks.
+  return element.innerText.replace(/\r\n?/g, "\n");
+}
+
 function saveElementText(element) {
   const edits = getStoredEdits();
   const editPath = element.dataset.editPath || getElementPath(element);
   element.dataset.editPath = editPath;
-  edits[editPath] = element.textContent;
+  edits[editPath] = getEditableText(element);
   setStoredEdits(edits);
 }
 
@@ -188,7 +193,7 @@ function collectAllTextEdits() {
   editableElements.forEach((element) => {
     const editPath = element.dataset.editPath || getElementPath(element);
     element.dataset.editPath = editPath;
-    edits[editPath] = element.textContent;
+    edits[editPath] = getEditableText(element);
   });
 
   return edits;
@@ -884,11 +889,4 @@ window.addEventListener("beforeunload", (event) => {
     event.returnValue = "";
     return "";
   }
-
-  if (!hasRemoteBackupServer || !navigator.sendBeacon) return;
-
-  const payload = new Blob([JSON.stringify({ edits: collectAllTextEdits() })], {
-    type: "application/json",
-  });
-  navigator.sendBeacon(EDIT_BACKUP_ENDPOINT, payload);
 });
