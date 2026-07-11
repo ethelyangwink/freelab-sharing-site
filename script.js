@@ -1,4 +1,3 @@
-const tocLinks = Array.from(document.querySelectorAll(".toc a"));
 const EDIT_PASSWORD_HASH =
   "071994fef2777c29ed99ac8814073493c4fdd81ebbf0d36024862184f1cadb51";
 const EDIT_STORAGE_KEY = "freelab-text-edits-v1";
@@ -25,32 +24,92 @@ const EDITABLE_SELECTOR = [
   ".button",
 ].join(",");
 
-const sections = tocLinks
-  .map((link) => document.querySelector(link.getAttribute("href")))
-  .filter(Boolean);
+let tocObserver = null;
 
-const observer = new IntersectionObserver(
-  (entries) => {
-    const visible = entries
-      .filter((entry) => entry.isIntersecting)
-      .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+function initializeToc() {
+  const tocTree = document.querySelector(".toc-tree");
+  const toggleAll = document.querySelector(".toc-toggle-all");
+  const headings = Array.from(document.querySelectorAll(".content h1, .content h3, .content h4, .content h5"));
+  const levels = { H1: 1, H3: 2, H4: 3, H5: 4 };
+  const roots = [];
+  const stack = [];
 
-    if (!visible) return;
+  headings.forEach((heading, index) => {
+    if (!heading.id) heading.id = `heading-${index + 1}`;
+    const node = { heading, level: levels[heading.tagName], children: [] };
+    while (stack.length && stack.at(-1).level >= node.level) stack.pop();
+    (stack.length ? stack.at(-1).children : roots).push(node);
+    stack.push(node);
+  });
 
-    tocLinks.forEach((link) => {
-      link.classList.toggle(
-        "active",
-        link.getAttribute("href") === `#${visible.target.id}`,
-      );
+  function renderNodes(nodes) {
+    const list = document.createElement("ul");
+    nodes.forEach((node) => {
+      const item = document.createElement("li");
+      const row = document.createElement("div");
+      const link = document.createElement("a");
+      row.className = "toc-row";
+      link.href = `#${node.heading.id}`;
+      link.textContent = node.heading.textContent.trim();
+      row.append(link);
+
+      if (node.children.length) {
+        const button = document.createElement("button");
+        const childList = renderNodes(node.children);
+        button.type = "button";
+        button.className = "toc-branch-toggle";
+        button.setAttribute("aria-label", `收起${link.textContent}的子标题`);
+        button.setAttribute("aria-expanded", "true");
+        button.textContent = "−";
+        button.addEventListener("click", () => {
+          const expanded = button.getAttribute("aria-expanded") === "true";
+          button.setAttribute("aria-expanded", String(!expanded));
+          button.setAttribute("aria-label", `${expanded ? "展开" : "收起"}${link.textContent}的子标题`);
+          button.textContent = expanded ? "+" : "−";
+          childList.hidden = expanded;
+          updateToggleAllLabel();
+        });
+        row.prepend(button);
+        item.append(row, childList);
+      } else {
+        const spacer = document.createElement("span");
+        spacer.className = "toc-branch-spacer";
+        spacer.setAttribute("aria-hidden", "true");
+        row.prepend(spacer);
+        item.append(row);
+      }
+      list.append(item);
     });
-  },
-  {
-    rootMargin: "-18% 0px -68% 0px",
-    threshold: [0.1, 0.25, 0.5],
-  },
-);
+    return list;
+  }
 
-sections.forEach((section) => observer.observe(section));
+  function updateToggleAllLabel() {
+    const buttons = Array.from(tocTree.querySelectorAll(".toc-branch-toggle"));
+    const allExpanded = buttons.every((button) => button.getAttribute("aria-expanded") === "true");
+    toggleAll.textContent = allExpanded ? "全部收起" : "全部展开";
+  }
+
+  tocTree.replaceChildren(renderNodes(roots));
+  toggleAll.onclick = () => {
+    const expand = toggleAll.textContent === "全部展开";
+    tocTree.querySelectorAll(".toc-branch-toggle").forEach((button) => {
+      button.setAttribute("aria-expanded", String(expand));
+      button.textContent = expand ? "−" : "+";
+      button.closest("li").querySelector(":scope > ul").hidden = !expand;
+    });
+    updateToggleAllLabel();
+  };
+
+  if (tocObserver) tocObserver.disconnect();
+  const tocLinks = Array.from(tocTree.querySelectorAll("a"));
+  tocObserver = new IntersectionObserver((entries) => {
+    const visible = entries.filter((entry) => entry.isIntersecting)
+      .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+    if (!visible) return;
+    tocLinks.forEach((link) => link.classList.toggle("active", link.hash === `#${visible.target.id}`));
+  }, { rootMargin: "-18% 0px -68% 0px", threshold: [0.1, 0.25, 0.5] });
+  headings.forEach((heading) => tocObserver.observe(heading));
+}
 
 const editToolbar = document.querySelector(".edit-toolbar");
 const editLock = document.querySelector(".edit-lock");
@@ -362,6 +421,7 @@ async function hydrateEditsFromServer() {
     hasRemoteBackupServer = true;
     setStoredEdits({ ...getStoredEdits(), ...serverEdits });
     applyStoredEdits();
+    initializeToc();
   } catch {
     hasRemoteBackupServer = false;
   }
@@ -655,6 +715,7 @@ async function clearRemoteBackup() {
 }
 
 applyStoredEdits();
+initializeToc();
 hydrateEditsFromServer();
 
 editableElements.forEach((element) => {
