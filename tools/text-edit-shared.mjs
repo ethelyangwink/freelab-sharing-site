@@ -73,6 +73,12 @@ export async function writeTextEditBackup(edits) {
 
 export async function syncIndexFromBackup(filePath = BACKUP_FILE) {
   const backup = await readTextEditBackup(filePath);
+
+  if (path.resolve(filePath) !== path.resolve(BACKUP_FILE)) {
+    await mkdir(BACKUP_DIR, { recursive: true });
+    await writeFile(BACKUP_FILE, `${JSON.stringify(backup, null, 2)}\n`);
+  }
+
   const html = await readFile(INDEX_FILE, "utf8");
   const result = applyTextEditsToHtml(html, backup.edits);
 
@@ -170,7 +176,9 @@ export function applyTextEditsToHtml(html, editsInput) {
 
 function escapeTextForHtml(value) {
   return value
+    .replace(/\r\n?/g, "\n")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br />");
 }
