@@ -354,14 +354,6 @@ img {
   margin-top: 10px;
 }
 
-.knowledge-copy > p {
-  display: inline;
-}
-
-.knowledge-copy + p {
-  margin-top: 10px;
-}
-
 p {
   margin: 0;
   color: #49423c;
@@ -796,9 +788,29 @@ figcaption {
 }
 
 .story-card .phone-gallery {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  max-width: 430px;
+  grid-template-columns: repeat(2, var(--opening-shot-width));
+  gap: 28px;
+  width: auto;
+  max-width: none;
   justify-self: end;
+}
+
+@media (min-width: 761px) {
+  .story-card {
+    position: relative;
+    min-height: calc(var(--opening-shot-width) * 1.72 + 58px);
+  }
+
+  .story-card .phone-gallery {
+    position: absolute;
+    top: 0;
+    right: calc(50% + 187px);
+  }
+}
+
+.basic-card > p,
+.practical-card > p {
+  line-height: 1.7;
 }
 
 .media-row .phone-gallery figure {
@@ -1488,6 +1500,7 @@ body.presentation-pen-active .presentation-pen-canvas {
   .phone-gallery.large {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
 }
 
 @media (max-width: 480px) {
