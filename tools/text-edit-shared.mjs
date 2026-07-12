@@ -32,8 +32,17 @@ export function normalizeEdits(edits) {
   return Object.fromEntries(
     Object.entries(edits)
       .filter(([pathKey, value]) => pathKey && typeof value === "string")
-      .map(([pathKey, value]) => [pathKey, value]),
+      .map(([pathKey, value]) => [pathKey, normalizeEditableText(value)]),
   );
+}
+
+function normalizeEditableText(value) {
+  return value
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .join("\n")
+    .replace(/^\n+|\n+$/g, "");
 }
 
 export function readBackupPayload(rawValue) {

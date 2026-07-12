@@ -176,7 +176,28 @@ function getElementPath(element) {
 
 function getEditableText(element) {
   // contenteditable represents Enter with <div> or <br>; textContent drops those breaks.
-  return element.innerText.replace(/\r\n?/g, "\n");
+  return normalizeEditableText(element.innerText);
+}
+
+function normalizeEditableText(value) {
+  return value
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .join("\n")
+    .replace(/^\n+|\n+$/g, "");
+}
+
+function setEditableText(element, value) {
+  const lines = normalizeEditableText(value).split("\n");
+  const fragment = document.createDocumentFragment();
+
+  lines.forEach((line, index) => {
+    if (index) fragment.append(document.createElement("br"));
+    fragment.append(document.createTextNode(line));
+  });
+
+  element.replaceChildren(fragment);
 }
 
 function saveElementText(element) {
@@ -441,7 +462,7 @@ function applyStoredEdits() {
     element.dataset.editPath = editPath;
 
     if (Object.prototype.hasOwnProperty.call(edits, editPath)) {
-      element.textContent = edits[editPath];
+      setEditableText(element, edits[editPath]);
     }
   });
 }
